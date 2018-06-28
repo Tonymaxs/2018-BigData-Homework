@@ -1112,7 +1112,72 @@ line_plot(targets[-n:], preds[-n:], 'actual', 'prediction')
 
 
 ## 透過ARMIA模型預測Bitcoin比特幣未來1個月交易價格
-#### 透過反轉Box-Cox轉換函數後，預測出價格走勢
+## 資料檢索
+#### 使用Kaggle提供Bitcoin2012-2018每分鐘CSV交易資料集
+```python
+df = pd.read_csv('../input/bitstampUSD_1-min_data_2012-01-01_to_2018-03-27.csv')
+df.head()
+```
+
+Timestamp	Open	High	Low	Close	Volume_(BTC)	Volume_(Currency)	Weighted_Price
+0	1325317920	4.39	4.39	4.39	4.39	0.455581	2.0	4.39
+1	1325317980	4.39	4.39	4.39	4.39	0.455581	2.0	4.39
+2	1325318040	4.39	4.39	4.39	4.39	0.455581	2.0	4.39
+3	1325318100	4.39	4.39	4.39	4.39	0.455581	2.0	4.39
+4	1325318160	4.39	4.39	4.39	4.39	0.455581	2.0	4.39
+
+## 重新採樣每日、每月、每年、每季資料
+```python
+df.Timestamp = pd.to_datetime(df.Timestamp, unit='s')
+df.index = df.Timestamp
+df = df.resample('D').mean()
+df_month = df.resample('M').mean()
+df_year = df.resample('A-DEC').mean()
+df_Q = df.resample('Q-DEC').mean()
+```
+
+## 顯示Bitcoin的美元走勢
+```python
+fig = plt.figure(figsize=[15, 7])
+plt.suptitle('Bitcoin exchanges, mean USD', fontsize=22)
+
+plt.subplot(221)
+plt.plot(df.Weighted_Price, '-', label='By Days')
+plt.legend()
+
+plt.subplot(222)
+plt.plot(df_month.Weighted_Price, '-', label='By Months')
+plt.legend()
+
+plt.subplot(223)
+plt.plot(df_Q.Weighted_Price, '-', label='By Quarters')
+plt.legend()
+
+plt.subplot(224)
+plt.plot(df_year.Weighted_Price, '-', label='By Years')
+plt.legend()
+
+plt.show()
+```
+![png](BitcoinUSD.png)
+
+
+## 模型選擇
+#### 透過自相關函數和偏自相關函數建立模型
+
+```python
+plt.figure(figsize=(15,7))
+ax = plt.subplot(211)
+sm.graphics.tsa.plot_acf(df_month.prices_box_diff2[13:].values.squeeze(), lags=48, ax=ax)
+ax = plt.subplot(212)
+sm.graphics.tsa.plot_pacf(df_month.prices_box_diff2[13:].values.squeeze(), lags=48, ax=ax)
+plt.tight_layout()
+plt.show()
+```
+![png](Autocorrelation.png)
+
+
+#### 最透過反轉Box-Cox轉換函數後，預測出價格走勢
 
 ```python
 def invboxcox(y,lmbda):
@@ -1140,3 +1205,8 @@ plt.show()
 ```
 
 ![png](Arima.png)
+
+
+##  T-Brain - 趨勢科技-台灣ETF價格預測競賽
+
+![jpg](ETFStation.jpg)
